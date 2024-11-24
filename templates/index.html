@@ -1,0 +1,116 @@
+{% extends "template.html" %}
+{% block title %} Home {% endblock %}
+{% block content %}
+<div class="hero-section text-center py-5">
+    <h1 class="display-4">Empower Your Investments</h1>
+    <p class="lead">Track stock performance with real-time sentiment analysis.</p>
+    {% if not current_user.is_authenticated %}
+    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-lg">Get Started</a>
+    {% endif %}
+</div>
+{% if current_user.is_authenticated %}
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Welcome back, {{ current_user.name }}</h5>
+                                <p class="card-text">Explore the latest market insights and track your favorite stocks.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Your followed companies:</h5>
+                                {% if following %}
+                                    <ul class="list-group list-group-flush">
+                                    {% for item in following %}
+                                    <li class="list-group-item">
+                                        <a href="/company/{{item[1]}}"><strong><em>{{ item[1] }}</em></strong>: {{ item[0] }}</a>
+                                    </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>When you follow a company, they will be shown here.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <br>
+                {% if NewsData %}
+                <h3><u>Recent news</u></h3>
+                {% else %}
+                <h3><u>No news available</u></h3>
+                {% endif %}
+                {% for story in NewsData %}
+                <div class="card mt-3">
+                    <img src="{{ story['banner_image'] }}" class="card-img-top" style="max-width: 95%; height: auto; display: block;">
+                    <div class="card-body">
+                        <h4 class="card-title">{{ story["title"] }}</h4>
+                        <h5><em>{{story["source"]}}</em></h5>
+                        <h5>
+                        {% for ticker in story["ticker_sentiment"] %}
+                        {% if ticker["ticker_sentiment_score"]|float <= -0.15 %}
+                        <span class="badge text-bg-danger">{{ ticker["ticker"] }}: Negative ({{ ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+                        {% elif ticker["ticker_sentiment_score"]|float >= 0.15 %}
+                        <span class="badge text-bg-success">{{ ticker["ticker"] }}: Positive ({{ ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+                        {% else %}
+                        {% if ticker["ticker_sentiment_score"]|float > 0 %}
+                        <span class="badge text-bg-secondary">{{ ticker["ticker"] }}: Neutral (+{{ ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">{{ ticker["ticker"] }}: Neutral ({{ ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+                        {% endif %}
+                        {% endif %}
+                        {% endfor %}
+                        </h5>
+                        <p class="card-text">{{ story["summary"] }}</p>
+                        <a href="{{ story['url'] }}" class="btn btn-primary">Read full article</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="col-md-4">
+                {% if following %}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Short on time?</h5>
+                        <p class="card-text">Click below to receive a round-up of your news straight to your inbox.</p>
+                        <form method="POST" action="{{ url_for('emailsummary') }}">
+                            <button type="submit" class="btn btn-primary">Send summary</button>
+                          </form>
+                    </div>
+                </div>
+                <br>
+                {% endif %}
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Suggested for you:</h5>
+                        {% if TopIndustry %}
+                            Based on your interest in <strong>{{ TopIndustry }}</strong>:
+                            <ul class="list-group list-group-flush">
+                                {% for company in SuggestedCompanies %}
+                                    <li class="list-group-item">
+                                        <a href="/company/{{company[0]}}"><strong><em>{{ company[0] }}</em></strong>: {{ company[1] }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>Follow companies to receive personalized suggestions</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="container my-5 text-center">
+        <h3>Log in to view your profile and access personalized insights.</h3>
+        <a href="{{ url_for('login') }}" class="btn btn-outline-primary mt-3">Login</a>
+        <a href="{{ url_for('signup') }}" class="btn btn-success mt-3">Sign Up</a>
+    </div>
+{% endif %}
+{% endblock %}

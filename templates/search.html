@@ -1,0 +1,17 @@
+{% extends "template.html" %}
+{% block title %} Search {% endblock %}
+{% block content %} 
+{% if query == '%' %}
+  <h3>{{ search_results|length }} results for ""</h3>
+{% else %}
+  <h3>{{ search_results|length }} results for "{{ query }}"</h3>
+{% endif %}
+    <ul class="list-group list-group-flush">
+{% for result in search_results %}
+    <li class="list-group-item">
+      <a href="/company/{{result.ticker}}"><strong><em>{{ result.ticker }}</em></strong>: {{ result.name }}</a>
+    </li>
+{% endfor %}
+</ul>
+
+{% endblock %}

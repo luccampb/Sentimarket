@@ -1,0 +1,74 @@
+{% extends "template.html" %}
+{% block title %} Settings {% endblock %}
+{% block content %}
+<body>
+    <main>
+        <h2>{{current_user.name}}'s profile</h2>
+        <section id="uploadphoto">
+            <h5>Current Profile Photo</h5>            
+            <div class="col-md-4">                
+                <img class="settings" src="{{ url_for('static', filename=current_user.pic) }}" height="200px" width="200px" alt="Profile Photo"/>
+                <h5>Upload Profile Photo</h5>
+                <form action="/upload" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="file">
+                    <input type="submit" value="Upload">
+                </form>
+            </div>            
+        </section>        
+        <section id="changename">
+            <h5>Update Name - {{current_user.name}}</h5>
+            <form method="POST" action="{{url_for('change_name')}}">
+                <label for="name">Name</label>
+                <br/>
+                <div>
+                    <input required type="name" class="form-control" id="name" name="name">
+                    <button type="submit" class="btn btn-primary btn-block">Submit</button>
+                </div>        
+            </form>
+        </section>   
+        <section id="changeemail">
+            <h5>Update Email - {{hidden_email}}</h5>
+            <form method="POST" action="{{url_for('change_email')}}">
+                <div>
+                    <label for="password">Current Password</label>
+                    <input required type="password" class="form-control" id="password-curr" name="password-curr">
+                    <label for="email">Email Address</label>
+                    <input required type="email" class="form-control" id="email" name="email">
+                    <button type="submit" class="btn btn-primary btn-block">Submit</button>
+                </div>    
+            </form>
+        </section>     
+        <section id="changepassword">
+            <h5>Change Password</h5>
+            <form method="POST" action="{{url_for('change_password')}}">
+                <div>
+                    <label for="password">Current Password</label>
+                    <input required type="password" class="form-control" id="password-curr" name="password-curr">
+                    <label for="password">New Password</label>
+                    <input required type="password" class="form-control" id="password-new" name="password-new">
+                    <label for="password">Confirm Password</label>
+                    <input required type="password" class="form-control" id="password-conf" name="password-conf">
+                    <button type="submit" class="btn btn-primary btn-block">Submit</button>
+                </div>  
+            </form>
+        </section>
+        <section id="deleteaccount">
+            <h5>Delete Account</h5>
+            <form method="POST" action="{{url_for('delete_account')}}">
+                <div>
+                    <label for="password">Enter Password</label>
+                    <input required type="password" class="form-control" id="password-curr" name="password-curr">
+                    <label for="password">Confirm Password</label>
+                    <input required type="password" class="form-control" id="password-conf" name="password-conf">
+                    <label for="confirmation_checkbox">
+                        <input type="checkbox" id="confirmation_checkbox" name="confirmation_checkbox" required>
+                        I confirm that this will DELETE MY ACCOUNT.
+                    </label>
+                    <br/>
+                    <button type="submit" class="btndelete">Delete Account</button>
+                </div>  
+            </form>
+        </section>
+    </main>
+</body>
+{% endblock %}

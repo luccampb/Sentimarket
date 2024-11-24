@@ -1,0 +1,271 @@
+{% extends "template.html" %}
+{% block title %} {{ticker}} {% endblock %}
+{% block content %} 
+<form method="POST" action="{{ url_for('follow_company', ticker=ticker, follow=follow) }}">
+  <button type="submit" class="btn btn-primary btn-block float-end">{{follow}} Company</button>
+</form>
+<h2><u>{{ name }} ({{ ticker }})</u></h2>
+<h5><strong>Industry:</strong> {{ industry }}</h5>
+{{ description }}
+<br>
+<br>
+<section id="price">
+  <h3><u>Stock price</u></h3>
+  <h5><strong>Volatility:</strong> {{ volatility|round(4) }}% <i class="bi bi-info-circle" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Volatility measures the degree of price fluctuations over time. High volatility indicates greater uncertainty and risk, while low volatility suggests more stable movements."></i></h5> 
+  <ul class="nav nav-pills" id="chartTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab1" data-bs-toggle="pill" data-bs-target="#chart1" type="button">Daily</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab2" data-bs-toggle="pill" data-bs-target="#chart2" type="button">Weekly</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab3" data-bs-toggle="pill" data-bs-target="#chart3" type="button">Monthly</button>
+    </li>
+    {% if (ticker == "AAPL") or (ticker == "META") or (ticker == "BAC") or (ticker == "JPM") or (ticker == "NVDA") or (ticker == "TSLA") %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab5" data-bs-toggle="pill" data-bs-target="#chart5" type="button">Predicted</button>
+  </li>
+  {% endif %}
+</ul>
+<div class="tab-content mt-2">
+  <div id="chart1" class="tab-pane show active" role="tabpanel">
+      <canvas id="dailyStockChart"></canvas>
+  </div>
+  <div id="chart2" class="tab-pane" role="tabpanel">
+      <canvas id="weeklyStockChart"></canvas>
+  </div>
+  <div id="chart3" class="tab-pane" role="tabpanel">
+      <canvas id="monthlyStockChart"></canvas>
+  </div>
+  {% if (ticker == "AAPL") or (ticker == "META") or (ticker == "BAC") or (ticker == "JPM") or (ticker == "NVDA") or (ticker == "TSLA") %}
+  <div id="chart5" class="tab-pane" role="tabpanel">
+    <div class="alert alert-primary" role="alert">
+      <h5 class="alert-heading"><strong><em>About Predictions</em></strong></h5>
+      <hr>
+      <p>An LSTM (type of neural network) is used to forecast the daily stock prices for the next 30 days, where it uses the prices of the last 50 days to predict the price for the next day. Note that the graph generated is much smoother than the real stock prices, this is to show the rate that the prices are likely to increase or decrease by. The real values are expected to fluctuate more, but still follow the overall trend of the line. These predictions act only as a guide and SentiMarket is not responsible for any investments you make.</p>
+    </div>
+    <canvas id="predictedStockChart"></canvas>
+</div>
+{% endif %}
+</div>
+</section>
+<br>
+<section id="sentiment">
+  <h3><u>News and sentiment</u></h3>
+  <div class="scrollable-container">
+    <ul class="list-group">
+      {% for story in news %}
+      <a href="{{ story['url'] }}" class="list-group-item list-group-item-action">
+      <p class="text-end"><strong><em>{{ days2[days2|length - loop.index] }}</em></strong></p>
+      <h5><u>{{ story["title"] }}</u></h5>
+      <h6><em>{{story["source"]}}</em></h6>
+      <p>{{ story["summary"] }}</p>
+      <h5>
+      {% for story_ticker in story["ticker_sentiment"] %}
+      {% if story_ticker["ticker"] == ticker %}
+      {% if story_ticker["ticker_sentiment_score"]|float <= -0.15 %}
+      <span class="badge text-bg-danger">Negative ({{ story_ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+      {% elif story_ticker["ticker_sentiment_score"]|float >= 0.15 %}
+      <span class="badge text-bg-success">Positive (+{{ story_ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+      {% else %}
+      {% if avg_sentiment > 0 %}
+      <span class="badge text-bg-secondary">Neutral (+{{ story_ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+      {% elif avg_sentiment < 0 %}
+      <span class="badge text-bg-secondary">Neutral ({{ story_ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+      {% else %}
+      <span class="badge text-bg-secondary">Neutral ({{ story_ticker["ticker_sentiment_score"]|float|round(2) }})</span>
+      {% endif %}
+      {% endif %}
+      {% endif %}
+      {% endfor %}
+      </h5>
+      </a>
+      {% endfor %}
+    </ul>
+  </div>
+  <br>
+  {% if avg_sentiment <= -0.15 %}
+  <div class="alert alert-danger" role="alert">
+    <h5 class="alert-heading"><strong>Average Sentiment:</strong> {{ avg_sentiment }} <i class="bi bi-graph-down-arrow"></i></h5>
+    <hr>
+    <p>Negative opinion has been detected around {{ name }}. Historical observations suggest a connection between negative sentiment and negative future returns as well as increased volatility.</p>
+  </div>
+  {% elif avg_sentiment >= 0.15 %}
+  <div class="alert alert-success" role="alert">
+    <h5 class="alert-heading"><strong>Average Sentiment:</strong> +{{ avg_sentiment }} <i class="bi bi-graph-up-arrow"></i></h5>
+    <hr>
+    <p>Recent information about {{ name }} indicates positive opinion. Observations suggest a potential correlation between positive news sentiment and stock price movements.</p>
+  </div>
+  {% else %}
+  <div class="alert alert-secondary" role="alert">
+    {% if avg_sentiment > 0 %}
+    <h5 class="alert-heading"><strong>Average Sentiment:</strong> +{{ avg_sentiment }}</h5>
+    {% elif avg_sentiment < 0 %}
+    <h5 class="alert-heading"><strong>Average Sentiment:</strong> {{ avg_sentiment }}</h5>
+    {% else %}
+    <h5 class="alert-heading"><strong>Average Sentiment:</strong> {{ avg_sentiment }}</h5>
+    {% endif %}
+    <hr>
+    <p>{{ name }} currently shows neutral opinion, with no notable positive or negative indications.</p>
+  </div>
+  {% endif %}
+  <div>
+    <canvas id="dailySentimentChart"></canvas>
+  </div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+<script>
+  $(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip();
+  });
+</script>
+<script>
+    if({{ daily_prices|tojson }}[0] > {{ daily_prices|tojson }}[99]){
+        var graphCol = 'rgb(255,0,0)'; 
+    }else{
+        var graphCol = 'rgb(0,255,0)';
+    }
+    if({{ weekly_prices[0]|tojson }} > {{ weekly_prices[-1]|tojson }}){
+        var graphCol3 = 'rgb(255,0,0)'; 
+    }else{
+        var graphCol3 = 'rgb(0,255,0)';
+    }
+    if({{ monthly_prices[0]|tojson }}[0] > {{ monthly_prices[-1]|tojson }}){
+        var graphCol4 = 'rgb(255,0,0)'; 
+    }else{
+        var graphCol4 = 'rgb(0,255,0)';
+    }
+    const ctx = document.getElementById('dailyStockChart');
+    new Chart(ctx, {
+      responsive: true,
+      type: 'line',
+      data: {
+        labels: {{ days|tojson }},
+        datasets: [{
+          label: 'Stock price (at close)',
+          data: {{ daily_prices|tojson }},
+          borderWidth: 3,
+          borderColor: graphCol
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            stacked: true,
+          }
+        }
+      }
+    });
+
+    if({{ avg_sentiment|tojson }} <= -0.15 ){
+        var graph2Col = 'rgb(255,0,0)'; 
+    }else if ({{ avg_sentiment|tojson }} >= 0.15){
+        var graph2Col = 'rgb(0,255,0)';
+    } else {
+      var graph2Col = 'rgb(173, 181, 189)'
+    }
+
+    const ctx2 = document.getElementById('dailySentimentChart');
+    new Chart(ctx2, {
+      responsive: true,
+      type: 'line',
+      data: {
+        labels: {{ days2|tojson }},
+        datasets: [{
+          label: 'Sentiment',
+          data: {{ daily_sentiment|tojson }},
+          borderWidth: 3,
+          borderColor: graph2Col
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            stacked: true,
+          }
+        }
+      }
+    });
+
+    const ctx3 = document.getElementById('weeklyStockChart');
+    new Chart(ctx3, {
+      responsive: true,
+      type: 'line',
+      data: {
+        labels: {{ weeks|tojson }},
+        datasets: [{
+          label: 'Weekly Stock price (at close)',
+          data: {{ weekly_prices|tojson }},
+          borderWidth: 3,
+          borderColor: graphCol3
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            stacked: true,
+          }
+        }
+      }
+    });
+
+    const ctx4 = document.getElementById('monthlyStockChart');
+    new Chart(ctx4, {
+      responsive: true,
+      type: 'line',
+      data: {
+        labels: {{ months|tojson }},
+        datasets: [{
+          label: 'Monthly Stock price (at close)',
+          data: {{ monthly_prices|tojson }},
+          borderWidth: 3,
+          borderColor: graphCol4
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            stacked: true,
+          }
+        }
+      }
+    });
+
+    const null30 = new Array(30);
+    const null70 = new Array(70);
+    const ctx5 = document.getElementById('predictedStockChart');
+    new Chart(ctx5, {
+      responsive: true,
+      type: 'line',
+      data: {
+        labels: {{ last100DaysList }},
+        datasets: [{
+          label: 'Real daily stock price (at close)',
+          data: {{ last70df }}.concat(null30),
+          borderWidth: 3,
+          borderColor: 'rgb(173, 181, 189)'
+        },{
+          label: 'Predicted daily stock price (at close)',
+          data: null70.concat({{ predictions }}),
+          borderWidth: 3,
+          borderColor: 'rgb(13, 110, 253)'
+        }]
+      },
+      options: {
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Days before/after today'
+            }
+          },
+          y: {
+            stacked: true,
+          }
+        }
+      }
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "template.html" %}
+{% block title %} Sign up {% endblock %}
+{% block content %}
+        <h2>Sign up</h2>
+        <form method="POST" action="{{url_for('create_account')}}">
+        <label for="name">Name</label>
+        <input required type="name" class="form-control" id="name" name="name">
+        <br/>
+        <label for="email">Email address</label>
+        <input required type="email" class="form-control" id="email" name="email">
+        <br/>
+        <label for="password">Password</label>
+        <input required type="password" class="form-control" id="password" name="password">
+        <br/>
+        <button type="submit" class="btn btn-primary btn-block">Sign up</button>
+        </form>
+{% endblock %}
